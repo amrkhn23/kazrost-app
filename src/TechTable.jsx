@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { modelBonuses } from "./modelBonuses";
 import { models } from "./models";
+import { saveHistoryItem } from "./firebaseUtils";
 
-const TechTable = ({ addHistory }) => {
+const TechTable = ({ addHistory, setTechMetrics }) => {
   const [data, setData] = useState(
     models.map((m) => ({
       ...m,
@@ -27,29 +28,23 @@ const TechTable = ({ addHistory }) => {
 
   const handleAddFact = (index) => {
     const updated = [...data];
-    const fact = {
-      qty: tempInput.qty,
-      channel: tempInput.channel,
-      season: tempInput.season,
-      farm: tempInput.farm,
-    };
+    const fact = { ...tempInput };
     updated[index].facts.push(fact);
     setData(updated);
     setActiveForm(null);
     setTempInput({ qty: 0, channel: "commercial", season: "season", farm: "" });
 
-    // Добавляем в историю
     const bonusPerUnit =
       modelBonuses[data[index].bonusKey]?.[fact.channel]?.[fact.season] || 0;
 
-    addHistory({
+    addHistory?.({
       type: "Техника",
-      model: data[index].name,
+      name: data[index].name,
       qty: fact.qty,
       channel: fact.channel,
       season: fact.season,
       farm: fact.farm,
-      totalBonus: fact.qty * bonusPerUnit,
+      bonus: fact.qty * bonusPerUnit,
     });
   };
 
@@ -60,14 +55,14 @@ const TechTable = ({ addHistory }) => {
   );
   const completionRate = totalPlan ? totalFact / totalPlan : 0;
 
-  const getCoef = () => {
-    if (completionRate >= 1.1) return 1.1;
-    if (completionRate >= 1.0) return 1.0;
-    if (completionRate >= 0.8) return 0.8;
-    return 0.5;
-  };
-
-  const coef = getCoef();
+  const coef =
+    completionRate >= 1.1
+      ? 1.1
+      : completionRate >= 1.0
+      ? 1.0
+      : completionRate >= 0.8
+      ? 0.8
+      : 0.5;
 
   const rawBonus = data.reduce((sum, row) => {
     return (
@@ -82,6 +77,12 @@ const TechTable = ({ addHistory }) => {
 
   const totalBonus = rawBonus * coef;
 
+  useEffect(() => {
+    if (typeof setTechMetrics === "function") {
+      setTechMetrics({ bonus: totalBonus });
+    }
+  }, [totalBonus, setTechMetrics]);
+
   return (
     <div className="p-4 relative">
       <h2 className="text-xl font-bold mb-4">🚜 Таблица по технике</h2>
@@ -91,7 +92,7 @@ const TechTable = ({ addHistory }) => {
             <th className="border p-1">Модель</th>
             <th className="border p-1">План</th>
             <th className="border p-1">Факт</th>
-            <th className="border p-1">Сумма</th>
+            <th className="border p-1">Бонус (₸)</th>
             <th className="border p-1">Действие</th>
           </tr>
         </thead>
@@ -117,7 +118,7 @@ const TechTable = ({ addHistory }) => {
                 </td>
                 <td className="border p-1">{totalQty}</td>
                 <td className="border p-1 text-right">
-                  {Math.round(totalRowBonus).toLocaleString()} ₸
+                  {Math.round(totalRowBonus).toLocaleString()}
                 </td>
                 <td className="border p-1 text-center relative">
                   <button
@@ -202,7 +203,7 @@ const TechTable = ({ addHistory }) => {
             <td className="border p-1">ИТОГО</td>
             <td className="border p-1">{totalPlan}</td>
             <td className="border p-1">{totalFact}</td>
-            <td className="border p-1" colSpan={2}>
+            <td className="border p-1 text-right" colSpan={2}>
               Выполнение: {(completionRate * 100).toFixed(1)}% | Коэф: {coef} | Бонус:{" "}
               {Math.round(totalBonus).toLocaleString()} ₸
             </td>

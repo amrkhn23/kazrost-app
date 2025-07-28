@@ -1,6 +1,6 @@
-// CleverTable.jsx
 import React, { useState, useEffect } from "react";
 import { cleverModels } from "./cleverModels";
+import { saveHistoryItem } from "./firebaseUtils";
 
 const channelPercents = {
   commercial: 0.015,
@@ -16,7 +16,7 @@ const getCoefDp = (completionRate) => {
   return 0.4;
 };
 
-const CleverTable = ({ setDpMetrics, onAddSale }) => {
+const CleverTable = ({ setDpMetrics, addHistory }) => {
   const [data, setData] = useState(
     cleverModels.map((m) => ({
       ...m,
@@ -50,13 +50,13 @@ const CleverTable = ({ setDpMetrics, onAddSale }) => {
     const percent = channelPercents[fact.channel] || 0;
     const bonus = fact.sum * percent;
 
-    onAddSale?.({
+    addHistory?.({
       type: "Доп. продукция",
-      model: data[index].name,
+      name: data[index].name,
       qty: 1,
-      farm: fact.farm,
+      sum: fact.sum,
       channel: fact.channel,
-      season: null,
+      farm: fact.farm,
       bonus,
     });
   };
@@ -199,7 +199,8 @@ const CleverTable = ({ setDpMetrics, onAddSale }) => {
               {Math.round(totalFact).toLocaleString()}
             </td>
             <td className="border p-1 text-right" colSpan={2}>
-              Выполнение: {(completionRate * 100).toFixed(1)}% | НДС: 12% | Бонус: {Math.round(finalBonus).toLocaleString()} ₸
+              Выполнение: {(completionRate * 100).toFixed(1)}% | НДС: 12% | Бонус:{" "}
+              {Math.round(finalBonus).toLocaleString()} ₸
             </td>
           </tr>
         </tfoot>
