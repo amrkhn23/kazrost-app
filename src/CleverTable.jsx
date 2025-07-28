@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { cleverModels } from "./cleverModels";
-import { saveHistoryItem } from "./firebaseUtils";
 
 const channelPercents = {
   commercial: 0.015,
@@ -16,7 +15,7 @@ const getCoefDp = (completionRate) => {
   return 0.4;
 };
 
-const CleverTable = ({ setDpMetrics, addHistory }) => {
+const CleverTable = ({ setDpMetrics, addToHistory }) => {
   const [data, setData] = useState(
     cleverModels.map((m) => ({
       ...m,
@@ -50,7 +49,7 @@ const CleverTable = ({ setDpMetrics, addHistory }) => {
     const percent = channelPercents[fact.channel] || 0;
     const bonus = fact.sum * percent;
 
-    addHistory?.({
+    addToHistory?.({
       type: "Доп. продукция",
       name: data[index].name,
       qty: 1,

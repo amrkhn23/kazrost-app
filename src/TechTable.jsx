@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { modelBonuses } from "./modelBonuses";
 import { models } from "./models";
-import { saveHistoryItem } from "./firebaseUtils";
 
-const TechTable = ({ addHistory, setTechMetrics }) => {
+const TechTable = ({ addToHistory, setTechMetrics }) => {
   const [data, setData] = useState(
     models.map((m) => ({
       ...m,
@@ -37,7 +36,7 @@ const TechTable = ({ addHistory, setTechMetrics }) => {
     const bonusPerUnit =
       modelBonuses[data[index].bonusKey]?.[fact.channel]?.[fact.season] || 0;
 
-    addHistory?.({
+    addToHistory?.({
       type: "Техника",
       name: data[index].name,
       qty: fact.qty,
