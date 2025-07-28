@@ -1,37 +1,28 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth, db } from "./firebase";
 import TechTable from "./TechTable";
 import CleverTable from "./CleverTable";
-import { db, auth, signInAnon } from "./firebase";
+import RegisterForm from "./RegisterForm";
+import LoginForm from "./LoginForm";
 import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
 
 function App() {
-  const [techMetrics, setTechMetrics] = useState({ bonus: 0 });
-  const [dpMetrics, setDpMetrics] = useState({ bonus: 0, coefDp: 1, completion: 0 });
+  const [user, setUser] = useState(null);
   const [salesHistory, setSalesHistory] = useState([]);
-  const [userId, setUserId] = useState(null);
+  const [techMetrics, setTechMetrics] = useState({ bonus: 0 });
+  const [dpMetrics, setDpMetrics] = useState({ bonus: 0, coefDp: 1 });
 
   useEffect(() => {
-    // Выполняем анонимный вход
-    signInAnon()
-      .then(() => {
-        console.log("Анонимный вход выполнен");
-      })
-      .catch((error) => {
-        console.error("Ошибка анонимного входа:", error);
-      });
-
-    // Следим за изменением состояния авторизации
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setUserId(user.uid);
-        // Загружаем историю продаж только после авторизации
+        setUser(user);
         const q = query(collection(db, "sales"), where("userId", "==", user.uid));
         const snapshot = await getDocs(q);
         const history = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setSalesHistory(history);
       } else {
-        setUserId(null);
+        setUser(null);
         setSalesHistory([]);
       }
     });
@@ -40,28 +31,41 @@ function App() {
   }, []);
 
   const addToHistory = async (entry) => {
-    if (!userId) {
-      console.error("Пользователь не авторизован");
-      return;
-    }
-    const entryWithUser = { ...entry, userId };
-
-    try {
-      await addDoc(collection(db, "sales"), entryWithUser);
-      setSalesHistory((prev) => [...prev, entryWithUser]);
-    } catch (e) {
-      console.error("Ошибка добавления в Firestore:", e);
-    }
+    if (!user) return;
+    const entryWithUser = { ...entry, userId: user.uid };
+    await addDoc(collection(db, "sales"), entryWithUser);
+    setSalesHistory((prev) => [...prev, entryWithUser]);
   };
 
   const totalBonus = Math.round(techMetrics.bonus + dpMetrics.bonus * dpMetrics.coefDp);
 
+  if (!user) {
+    return (
+      <div className="max-w-md mx-auto p-6">
+        <RegisterForm onRegister={setUser} />
+        <hr className="my-4" />
+        <LoginForm onLogin={setUser} />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto py-6 px-4">
+      <div className="mb-4 flex justify-between items-center">
+        <div>👋 Привет, {user.email}</div>
+        <button
+          onClick={() => signOut(auth)}
+          className="text-sm text-red-500 underline"
+        >
+          Выйти
+        </button>
+      </div>
+
       <TechTable setTechMetrics={setTechMetrics} addToHistory={addToHistory} />
       <div className="my-8 border-t pt-6">
         <CleverTable setDpMetrics={setDpMetrics} addToHistory={addToHistory} />
       </div>
+
       <div className="my-10 border-t pt-6 text-sm">
         <h3 className="text-lg font-semibold mb-2">📊 Свод по бонусам</h3>
         <ul className="mb-4">
@@ -70,6 +74,7 @@ function App() {
           <li>Коэф. доп. продукции: {dpMetrics.coefDp}</li>
           <li className="font-bold">Итоговая сумма бонусов: {totalBonus.toLocaleString()} ₸</li>
         </ul>
+
         <h3 className="text-lg font-semibold mb-2">📚 История продаж:</h3>
         <table className="w-full border text-xs">
           <thead className="bg-gray-100">
