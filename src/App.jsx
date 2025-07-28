@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import TechTable from "./TechTable";
 import CleverTable from "./CleverTable";
-import { db, auth } from "./firebase";
+import { db, auth, signInAnon } from "./firebase";
 import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -12,13 +12,27 @@ function App() {
   const [userId, setUserId] = useState(null);
 
   useEffect(() => {
+    // Выполняем анонимный вход
+    signInAnon()
+      .then(() => {
+        console.log("Анонимный вход выполнен");
+      })
+      .catch((error) => {
+        console.error("Ошибка анонимного входа:", error);
+      });
+
+    // Следим за изменением состояния авторизации
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserId(user.uid);
+        // Загружаем историю продаж только после авторизации
         const q = query(collection(db, "sales"), where("userId", "==", user.uid));
         const snapshot = await getDocs(q);
-        const history = snapshot.docs.map((doc) => doc.data());
+        const history = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setSalesHistory(history);
+      } else {
+        setUserId(null);
+        setSalesHistory([]);
       }
     });
 
@@ -26,6 +40,10 @@ function App() {
   }, []);
 
   const addToHistory = async (entry) => {
+    if (!userId) {
+      console.error("Пользователь не авторизован");
+      return;
+    }
     const entryWithUser = { ...entry, userId };
 
     try {
@@ -41,11 +59,9 @@ function App() {
   return (
     <div className="max-w-6xl mx-auto py-6 px-4">
       <TechTable setTechMetrics={setTechMetrics} addToHistory={addToHistory} />
-
       <div className="my-8 border-t pt-6">
         <CleverTable setDpMetrics={setDpMetrics} addToHistory={addToHistory} />
       </div>
-
       <div className="my-10 border-t pt-6 text-sm">
         <h3 className="text-lg font-semibold mb-2">📊 Свод по бонусам</h3>
         <ul className="mb-4">
@@ -54,7 +70,6 @@ function App() {
           <li>Коэф. доп. продукции: {dpMetrics.coefDp}</li>
           <li className="font-bold">Итоговая сумма бонусов: {totalBonus.toLocaleString()} ₸</li>
         </ul>
-
         <h3 className="text-lg font-semibold mb-2">📚 История продаж:</h3>
         <table className="w-full border text-xs">
           <thead className="bg-gray-100">
