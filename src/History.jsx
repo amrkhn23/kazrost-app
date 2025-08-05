@@ -11,30 +11,29 @@ const History = ({ history }) => {
           <thead>
             <tr className="bg-gray-100">
               <th className="border p-1">Тип</th>
-              <th className="border p-1">Модель</th>
+              <th className="border p-1">Наименование</th>
               <th className="border p-1">Хозяйство</th>
               <th className="border p-1">Канал</th>
               <th className="border p-1">Сезон</th>
               <th className="border p-1">Кол-во / Сумма</th>
-              <th className="border p-1">Бонус</th>
+              <th className="border p-1">Бонус (₸)</th>
             </tr>
           </thead>
           <tbody>
             {history.map((entry, i) => (
               <tr key={i}>
                 <td className="border p-1">{entry.type}</td>
-                <td className="border p-1">{entry.model}</td>
-                <td className="border p-1">{entry.farm}</td>
-                <td className="border p-1">{entry.channel}</td>
-                <td className="border p-1">
-                  {entry.season ? entry.season : "-"}
-                </td>
-                <td className="border p-1">
-                  {entry.qty ? entry.qty : entry.sum}{" "}
-                  {entry.qty ? "шт" : "₸"}
+                <td className="border p-1">{entry.name}</td>
+                <td className="border p-1">{entry.farm || "-"}</td>
+                <td className="border p-1">{entry.channel || "-"}</td>
+                <td className="border p-1">{entry.season || "-"}</td>
+                <td className="border p-1 text-right">
+                  {entry.qty
+                    ? `${entry.qty.toLocaleString()} шт`
+                    : `${entry.sum?.toLocaleString() || 0} ₸`}
                 </td>
                 <td className="border p-1 text-right">
-                  {Math.round(entry.totalBonus).toLocaleString()} ₸
+                  {Math.round(entry.bonus).toLocaleString()} ₸
                 </td>
               </tr>
             ))}
