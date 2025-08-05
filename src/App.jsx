@@ -52,13 +52,31 @@ function App() {
     setLoading(false);
   };
 
+  const getTechBonusWithCoef = (sales, planCount) => {
+    const factCount = sales.length;
+    const totalBonus = sales.reduce((sum, item) => sum + (item.bonus || 0), 0);
+    const rate = planCount > 0 ? factCount / planCount : 0;
+
+    let coef = 0;
+    if (rate > 1) coef = 1.1;
+    else if (rate >= 0.9) coef = 1.0;
+    else if (rate >= 0.8) coef = 0.9;
+    else if (rate >= 0.7) coef = 0.8;
+    else if (rate >= 0.5) coef = 0.5;
+
+    return Math.round(totalBonus * coef);
+  };
+
   useEffect(() => {
     const techSales = salesHistory.filter((item) => item.type === "Техника");
     const dpSales = salesHistory.filter((item) => item.type === "Доп. продукция");
 
-    const techBonus = techSales.reduce((sum, item) => sum + (item.bonus || 0), 0);
     const dpBonus = dpSales.reduce((sum, item) => sum + (item.bonus || 0), 0);
     const coefDp = dpSales.length >= 3 ? 1.1 : 1;
+
+    const totalPlan = JSON.parse(localStorage.getItem("techPlans") || "{}");
+    const totalPlanCount = Object.values(totalPlan).reduce((sum, val) => sum + Number(val), 0);
+    const techBonus = getTechBonusWithCoef(techSales, totalPlanCount);
 
     setTechMetrics({ bonus: techBonus });
     setDpMetrics({ bonus: dpBonus, coefDp });
